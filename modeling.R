@@ -1,8 +1,8 @@
 #install.packages("randomForest")
 install.packages("caret")
 
-train <- read.csv("train.csv", header=TRUE)
-test <- read.csv("test.csv", header = TRUE)
+train <- read.csv("https://raw.githubusercontent.com/m-earle/titanic-ml/main/train.csv", header=TRUE)
+test <- read.csv("https://github.com/m-earle/titanic-ml/blob/main/test.csv", header = TRUE)
 
 #library(randomForest)
 library(caret)
@@ -19,14 +19,49 @@ train.narm <- na.omit(train)
 #### Modeling ####
 
 #10-fold cross validation
-control <- 
+control <- trainControl(method = "cv", number = 10)
+metric = "Accuracy"
 
-
+#LDA
+set.seed(7)
+fit.lda <- train(Survived ~ Pclass + Sex + SibSp
+                 + Parch + Age + Fare + Sex*Fare + Sex*Age*Fare,
+                data = train.narm, method = "lda",
+                metric = metric, trControl = control)
+#CART
+set.seed(7)
+fit.cart <- train(Survived ~ Pclass + Sex + SibSp
+                  + Parch + Age + Fare + Sex*Fare + Sex*Age*Fare,
+                  data = train.narm, method = "rpart",
+                  metric = metric, trControl = control)
+#kNN
+set.seed(7)
+fit.knn <- train(Survived ~ Pclass + Sex + SibSp
+                  + Parch + Age + Fare + Sex*Fare + Sex*Age*Fare,
+                  data = train.narm, method = "knn",
+                  metric = metric, trControl = control)
+#SVM with radial kernel
+set.seed(7)
+fit.svm <- train(Survived ~ Pclass + Sex + SibSp
+                 + Parch + Age + Fare + Sex*Fare + Sex*Age*Fare,
+                 data = train.narm, method = "svmRadial",
+                 metric = metric, trControl = control)
 #random forest
-rf <- randomForest(
-  Survived ~ Pclass + Sex + SibSp + Parch + Age + Fare + Sex*Fare + Sex*Age*Fare,
-  data=train.narm, proximity=TRUE, importance = TRUE)
+set.seed(7)
+fit.rf <- train(Survived ~ Pclass + Sex + SibSp
+                + Parch + Age + Fare + Sex*Fare + Sex*Age*Fare,
+                data = train.narm, method = "rf",
+                metric = metric, trControl = control)
 
-print(rf)
+#find best model
+results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf))
+summary(results)
+dotplot(results)
+
+#summarize best model
+print(fit.svm)
+fit.svm$results
+
+
 
 test$pred = predict(rf, test)
